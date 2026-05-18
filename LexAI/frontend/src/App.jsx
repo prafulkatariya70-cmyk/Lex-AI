@@ -320,7 +320,7 @@ export default function App() {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const response = await axios.post("http://127.0.0.1:8000/analyze", formData);
+      const response = await axios.post("https://lex-ai-backend-epyt.onrender.com/analyze", formData);
       const parsed = JSON.parse(response.data.analysis);
       setResult(parsed);
       setHistory(prev => [{
