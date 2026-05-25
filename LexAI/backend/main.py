@@ -1,5 +1,6 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 import fitz
 import os
@@ -9,15 +10,29 @@ load_dotenv()
 
 app = FastAPI()
 
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    if request.method == "OPTIONS":
+        response = JSONResponse(content={}, status_code=200)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://lex-ai-prafulkatariya70-cmyks-projects.vercel.app", "http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-client = Groq(api_key="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")
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def extract_text_from_pdf(file_bytes):
     doc = fitz.open(stream=file_bytes, filetype="pdf")
@@ -55,7 +70,3 @@ def root():
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
-    contents = await file.read()
-    text = extract_text_from_pdf(contents)
-    result = analyze_contract(text)
-    return {"analysis": result}
